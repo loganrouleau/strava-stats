@@ -15,7 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class App {
-    private static final String ACCESS_TOKEN = "24e4639cd7c5215a24ec8ce00639812e3732a25e";
+    private static final String ACCESS_TOKEN = System.getenv("ACCESS_TOKEN");
     private static final int PAGE_SIZE = 200;
     private static final String FILE_NAME = "strava-data.csv";
     private static final String TIME_ZONE = "America/Los_Angeles";
