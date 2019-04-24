@@ -4,9 +4,6 @@ import com.strava.api.v3.Configuration;
 import com.strava.api.v3.api.ActivitiesApi;
 import com.strava.api.v3.auth.OAuth;
 import com.strava.api.v3.model.SummaryActivity;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -19,7 +16,7 @@ public class App {
     private static final int PAGE_SIZE = 200;
     private static final String FILE_NAME = "strava-data.csv";
     private static final String TIME_ZONE = "America/Los_Angeles";
-    private static final char SEPARATOR = ',';
+
     private final ActivitiesApi apiInstance = new ActivitiesApi();
     private final int beforeTime;
     private final int afterTime;
@@ -34,18 +31,17 @@ public class App {
             printUsage();
             System.exit(1);
         }
-        int beforeTime = -1;
-        int afterTime = -1;
+
         try {
-            beforeTime = (int) LocalDate.parse(args[1]).plusDays(1).atStartOfDay(ZoneId.of(TIME_ZONE)).toEpochSecond();
-            afterTime = (int) LocalDate.parse(args[0]).atStartOfDay(ZoneId.of(TIME_ZONE)).toEpochSecond();
-        } catch (DateTimeParseException e) {
+            int beforeTime = (int) LocalDate.parse(args[1]).plusDays(1).atStartOfDay(ZoneId.of(TIME_ZONE)).toEpochSecond();
+            int afterTime = (int) LocalDate.parse(args[0]).atStartOfDay(ZoneId.of(TIME_ZONE)).toEpochSecond();
+            new App(beforeTime, afterTime).run();
+        } catch (DateTimeParseException | IOException e) {
             System.out.println("Error: " + e.getMessage());
             printUsage();
             System.exit(1);
         }
 
-        new App(beforeTime, afterTime).run();
     }
 
     private static void printUsage() {
@@ -54,11 +50,10 @@ public class App {
         System.out.println("endDate: Query for activities up until the end of this day (format \"yyyy-MM-dd\")");
     }
 
-    private void run() {
+    private void run() throws IOException {
         authenticate();
-
         List<SummaryActivity> activities = getActivities(beforeTime, afterTime);
-        writeToCsvFile(activities);
+        CsvWriter.write(activities, FILE_NAME);
     }
 
     private void authenticate() {
@@ -84,51 +79,6 @@ public class App {
             e.printStackTrace();
         }
         return recentActivities;
-    }
-
-    private void writeToCsvFile(List<SummaryActivity> activities) {
-        File csvFile = new File(FILE_NAME);
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(csvFile))) {
-            bw.write("url," +
-                    "name," +
-                    "distance (m)," +
-                    "movingTime (s)," +
-                    "elapsedTime (s)," +
-                    "totalElevationGain (m)," +
-                    "type," +
-                    "startDateLocal," +
-                    "startTimeLocal," +
-                    "averageSpeed (m/s)");
-            bw.newLine();
-
-            for (SummaryActivity activity : activities) {
-                String url = "https://www.strava.com/activities/" + activity.getId();
-                String name = activity.getName();
-                if (name.contains(String.valueOf(SEPARATOR))) {
-                    name = '"' + name + '"';
-                }
-                String fullDateString = activity.getStartDateLocal().toString();
-                String startDateLocal = fullDateString.substring(0, fullDateString.indexOf('T'));
-                String startTimeLocal = fullDateString.substring(fullDateString.indexOf('T') + 1, fullDateString.indexOf('Z'));
-
-                bw.write(url + SEPARATOR +
-                        name + SEPARATOR +
-                        activity.getDistance() + SEPARATOR +
-                        activity.getMovingTime() + SEPARATOR +
-                        activity.getElapsedTime() + SEPARATOR +
-                        activity.getTotalElevationGain() + SEPARATOR +
-                        activity.getType() + SEPARATOR +
-                        startDateLocal + SEPARATOR +
-                        startTimeLocal + SEPARATOR +
-                        activity.getAverageSpeed());
-                bw.newLine();
-            }
-            System.out.println("\nResults written to file " + csvFile.getAbsolutePath());
-
-        } catch (IOException e) {
-            System.out.println("Error: " + e.getMessage());
-            System.exit(1);
-        }
     }
 
 }
