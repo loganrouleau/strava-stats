@@ -3,13 +3,16 @@ import com.strava.api.v3.ApiException;
 import com.strava.api.v3.Configuration;
 import com.strava.api.v3.api.ActivitiesApi;
 import com.strava.api.v3.auth.OAuth;
+import com.strava.api.v3.model.ActivityType;
 import com.strava.api.v3.model.SummaryActivity;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class App {
     private static final String ACCESS_TOKEN = System.getenv("ACCESS_TOKEN");
@@ -52,7 +55,10 @@ public class App {
 
     private void run() throws IOException {
         authenticate();
-        List<SummaryActivity> activities = getActivities(beforeTime, afterTime);
+        List<SummaryActivity> activities = getActivities(beforeTime, afterTime)
+                .stream()
+                .filter(a -> a.getType().equals(ActivityType.RUN))
+                .collect(Collectors.toList());
         CsvWriter.write(activities, FILE_NAME);
     }
 
@@ -71,13 +77,14 @@ public class App {
                 recentActivities.add(activity);
                 System.out.println(activity.getStartDateLocal() + " - " + activity.getName());
             }
-            if (recentActivities.size() == PAGE_SIZE) {
+            if (recentActivities.size() == PAGE_SIZE) { // recurse if we got too many results
                 int newBeforeTime = (int) recentActivities.getLast().getStartDateLocal().toEpochSecond();
                 recentActivities.addAll(getActivities(newBeforeTime, afterTime));
             }
         } catch (ApiException e) {
             e.printStackTrace();
         }
+        Collections.reverse(recentActivities);
         return recentActivities;
     }
 
