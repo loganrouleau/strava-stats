@@ -9,22 +9,21 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class App {
     private static final String ACCESS_TOKEN = System.getenv("ACCESS_TOKEN");
-    private static final int PAGE_SIZE = 200;
-    private static final String FILE_NAME = "strava-data.csv";
+    private static final int PAGE_SIZE = 200; // max results Strava returns for a single request
+    private static final String OUTPUT_FILE_NAME = "strava-data.csv";
     private static final String TIME_ZONE = "America/Los_Angeles";
 
-    private final ActivitiesApi apiInstance = new ActivitiesApi();
+    public ActivitiesApi apiInstance = new ActivitiesApi();
     private final int beforeTime;
     private final int afterTime;
 
-    private App(int beforeTime, int afterTime) {
+    public App(int beforeTime, int afterTime) {
         this.beforeTime = beforeTime;
         this.afterTime = afterTime;
     }
@@ -59,7 +58,7 @@ public class App {
                 .stream()
                 .filter(a -> a.getType().equals(ActivityType.RUN))
                 .collect(Collectors.toList());
-        CsvWriter.write(activities, FILE_NAME);
+        CsvWriter.write(activities, OUTPUT_FILE_NAME);
     }
 
     private void authenticate() {
@@ -68,24 +67,28 @@ public class App {
         stravaOauth.setAccessToken(ACCESS_TOKEN);
     }
 
-    private List<SummaryActivity> getActivities(int beforeTime, int afterTime) {
-        LinkedList<SummaryActivity> recentActivities = new LinkedList<>();
+    /**
+     * Get a list of activities ordered from oldest to most recent
+     */
+    public List<SummaryActivity> getActivities(int beforeTime, int afterTime) {
+        LinkedList<SummaryActivity> result = new LinkedList<>();
         try {
             System.out.println("\nFetching activities from Strava...\n");
             List<SummaryActivity> activities = apiInstance.getLoggedInAthleteActivities(beforeTime, afterTime, 1, PAGE_SIZE);
             for (SummaryActivity activity : activities) {
-                recentActivities.add(activity);
+                result.addFirst(activity);
                 System.out.println(activity.getStartDateLocal() + " - " + activity.getName());
             }
-            if (recentActivities.size() == PAGE_SIZE) { // recurse if we got too many results
-                int newBeforeTime = (int) recentActivities.getLast().getStartDateLocal().toEpochSecond();
-                recentActivities.addAll(getActivities(newBeforeTime, afterTime));
+            if (result.size() > 0) { // recurse if we need more results
+                int newBeforeTime = (int) result.getFirst().getStartDateLocal().toEpochSecond();
+                LinkedList<SummaryActivity> newResult = new LinkedList<>(getActivities(newBeforeTime, afterTime));
+                newResult.addAll(result);
+                result = newResult;
             }
         } catch (ApiException e) {
             e.printStackTrace();
         }
-        Collections.reverse(recentActivities);
-        return recentActivities;
+        return result;
     }
 
 }
