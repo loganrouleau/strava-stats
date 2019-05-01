@@ -16,11 +16,14 @@ public final class CsvWriter {
                     "distance (m)," +
                     "moving_time (s)," +
                     "elapsed_time (s)," +
+                    "moving_time (h:mm:ss)," +
+                    "elapsed_time (h:mm:ss)," +
                     "total_elevation_gain (m)," +
                     "type," +
                     "start_date_local," +
                     "start_time_local," +
-                    "average_speed (m/s)");
+                    "average_speed (m/s)" +
+                    "average_pace (min/km)");
             bw.newLine();
 
             for (SummaryActivity activity : activities) {
@@ -38,11 +41,13 @@ public final class CsvWriter {
                         activity.getDistance() + SEPARATOR +
                         activity.getMovingTime() + SEPARATOR +
                         activity.getElapsedTime() + SEPARATOR +
+                        UnitConverter.durationToHoursMinutesSeconds(activity.getMovingTime()) + SEPARATOR +
+                        UnitConverter.durationToHoursMinutesSeconds(activity.getElapsedTime()) + SEPARATOR +
                         activity.getTotalElevationGain() + SEPARATOR +
                         activity.getType() + SEPARATOR +
                         startDateLocal + SEPARATOR +
                         startTimeLocal + SEPARATOR +
-                        activity.getAverageSpeed());
+                        UnitConverter.speedToPace(activity.getAverageSpeed()));
                 bw.newLine();
             }
             System.out.println("\nResults written to file " + csvFile.getAbsolutePath());
