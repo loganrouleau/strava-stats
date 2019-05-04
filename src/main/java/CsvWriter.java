@@ -22,7 +22,8 @@ public final class CsvWriter {
                     "type," +
                     "start_date_local," +
                     "start_time_local," +
-                    "average_speed (m/s)" +
+                    "start_day_of_week_local," +
+                    "average_speed (m/s)," +
                     "average_pace (min/km)");
             bw.newLine();
 
@@ -35,6 +36,7 @@ public final class CsvWriter {
                 String fullDateString = activity.getStartDateLocal().toString();
                 String startDateLocal = fullDateString.substring(0, fullDateString.indexOf('T'));
                 String startTimeLocal = fullDateString.substring(fullDateString.indexOf('T') + 1, fullDateString.indexOf('Z'));
+                String startDayOfWeekLocal = activity.getStartDateLocal().getDayOfWeek().toString();
 
                 bw.write(url + SEPARATOR +
                         name + SEPARATOR +
@@ -47,6 +49,8 @@ public final class CsvWriter {
                         activity.getType() + SEPARATOR +
                         startDateLocal + SEPARATOR +
                         startTimeLocal + SEPARATOR +
+                        startDayOfWeekLocal + SEPARATOR +
+                        activity.getAverageSpeed() + SEPARATOR +
                         UnitConverter.speedToPace(activity.getAverageSpeed()));
                 bw.newLine();
             }
